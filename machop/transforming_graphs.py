@@ -84,3 +84,123 @@ mg, _ = add_software_metadata_analysis_pass(mg, None)
 from chop.passes.graph import report_graph_analysis_pass
 _ = report_graph_analysis_pass(mg)
 
+
+# Run the statistics analysis pass
+pass_args = {
+    "by": "type",                                                            # collect statistics by node name
+    "target_weight_nodes": ["linear"],                                       # collect weight statistics for linear layers
+    "target_activation_nodes": ["relu"],                                     # collect activation statistics for relu layers
+    "weight_statistics": {
+        "variance_precise": {"device": "cpu", "dims": "all"},                # collect precise variance of the weight
+    },
+    "activation_statistics": {
+        "range_quantile": {"device": "cpu", "dims": "all", "quantile": 0.97} # collect 97% quantile of the activation range
+    },
+    "input_generator": input_generator,                                      # the input generator for feeding data to the model
+    "num_samples": 32,                                                       # feed 32 samples to the model
+}
+
+mg, _ = profile_statistics_analysis_pass(mg, pass_args)
+mg, _ = report_node_meta_param_analysis_pass(mg, {"which": ("software",)})
+
+
+
+
+# Run the quantisation analysis pass.
+pass_args = {
+    "by": "type",
+    "default": {"config": {"name": None}},
+    "linear": {
+        "config": {
+            "name": "integer",
+            # data
+            "data_in_width": 8,
+            "data_in_frac_width": 4,
+            # weight
+            "weight_width": 8,
+            "weight_frac_width": 4,
+            # bias
+            "bias_width": 8,
+            "bias_frac_width": 4,
+        }
+    },
+}
+
+from chop.passes.graph.transforms import (
+    quantize_transform_pass,
+    summarize_quantization_analysis_pass,
+)
+from chop.ir.graph.mase_graph import MaseGraph
+
+# Save the original mase graph for the sake of comparison with quantised MaseGraph
+ori_mg = MaseGraph(model=model)
+ori_mg, _ = init_metadata_analysis_pass(ori_mg, None)
+ori_mg, _ = add_common_metadata_analysis_pass(ori_mg, {"dummy_in": dummy_in})
+
+mg, _ = quantize_transform_pass(mg, pass_args)
+# summarize_quantization_analysis_pass(ori_mg, mg, save_dir="quantize_summary")
+
+
+
+# Own traversal of the original and quantised graphs -----
+
+
+from tabulate import tabulate
+
+from chop.passes.graph.utils import get_mase_op, get_mase_type, get_node_actual_target
+from chop.tools.logger import get_logger
+
+logger = get_logger(__name__)
+
+
+def compared_pre_post_quantized_graphs(
+    ori_graph, graph, save_path=None, silent=False
+):
+    """List all nodes in the graph and compare the original and quantized nodes."""
+
+    def get_type_str(node):
+        if node.op == "call_module":
+            return type(get_node_actual_target(node)).__name__
+        elif get_mase_type(node) in [
+            "builtin_func",
+            "module_related_func",
+            "patched_func",
+        ]:
+            return get_node_actual_target(node).__name__
+        elif get_mase_type(node) in ["implicit_func"]:
+            actual_target = get_node_actual_target(node)
+            if isinstance(actual_target, str):
+                return actual_target
+            else:
+                return actual_target.__name__
+        else:
+            return node.target
+
+    headers = [
+        "Ori name",
+        "New name",
+        "MASE_TYPE",
+        "Mase_OP",
+        "Original type",
+        "Quantized type",
+        "Changed",
+    ]
+    rows = []
+    for ori_n, n in zip(ori_graph.fx_graph.nodes, graph.fx_graph.nodes):
+        rows.append(
+            [
+                ori_n.name,
+                n.name,
+                get_mase_type(n),
+                get_mase_op(n),
+                get_type_str(ori_n),
+                get_type_str(n),
+                type(get_node_actual_target(n)) != type(get_node_actual_target(ori_n)),
+            ]
+        )
+    if not silent:
+        logger.debug("Compare nodes:")
+        logger.debug("\n" + tabulate(rows, headers=headers, tablefmt="orgtbl"))
+    logger.info("\n" + tabulate(rows, headers=headers))
+    
+compared_pre_post_quantized_graphs(ori_mg, mg, save_path=None, silent=False)
