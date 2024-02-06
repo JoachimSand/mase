@@ -1,10 +1,28 @@
-with import <nixpkgs> { };
+
+with import <nixpkgs>{
+  config.allowUnfree = true;  
+};
+
+# with { pkgs ? (import <nixpkgs> { 
+#     config.allowUnfree = true;
+#     config.segger-jlink.acceptLicense = true; 
+# }), ... }:
 
 let
-  pythonPackages = python3Packages;
+  pythonPackages = pkgs.python3Packages;
 in pkgs.mkShell rec {
 
-  LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.stdenv.cc.cc pkgs.libGL pkgs.glib ];
+
+  # nativeBuildInputs = [
+  #   cudatoolkit_10_1
+  # ];
+
+  # shellHook = ''
+  #   export PATH=$PATH:/run/current-system/sw/bin
+  #   export LD_LIBRARY_PATH=${pkgs.libGL}/lib:${pkgs.libGLU}/lib:${pkgs.freeglut}/lib:${pkgs.xorg.libX11}/lib:${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.cudatoolkit_10_1}/lib:${pkgs.cudnn_cudatoolkit_10_1}/lib:${pkgs.cudatoolkit_10_1.lib}/lib:$LD_LIBRARY_PATH
+  # '';
+
+  LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.stdenv.cc.cc pkgs.libGL pkgs.glib pkgs.cudaPackages.cudnn pkgs.cudaPackages.cudatoolkit pkgs.cudaPackages.cuda_cudart];
 
   name = "impureMaseEnv";
   venvDir = "./.venv";
@@ -39,7 +57,17 @@ in pkgs.mkShell rec {
     python311Packages.pyopengl
     wget
     python311Packages.tensorboard
-    python311Packages.tensorflow
+    # python311Packages.tensorflowWithCuda
+    python311Packages.tensorflow-bin
+    python311Packages.torch-bin
+    python311Packages.torchvision-bin
+    python311Packages.torchaudio-bin
+
+    cudaPackages.cuda_cudart
+    cudaPackages.cudatoolkit
+    cudaPackages.cudnn
+
+    # python311Packages.pytorch-lightning
     python311Packages.keras
     python311Packages.python-lsp-server
 
@@ -52,11 +80,16 @@ in pkgs.mkShell rec {
     TMPDIR=./tmp/ pip install -r ./machop/requirements.txt
   '';
 
+  # shellHook = ''
+  # '';
+
   # Now we can execute any commands within the virtual environment.
   # This is optional and can be left out to run pip manually.
   postShellHook = ''
     # allow pip to install wheels
     unset SOURCE_DATE_EPOCH
+
+    export CUDA_PATH=${pkgs.cudatoolkit}
     fish
   '';
 }
