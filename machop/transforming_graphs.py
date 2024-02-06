@@ -107,7 +107,7 @@ mg, _ = report_node_meta_param_analysis_pass(mg, {"which": ("software",)})
 
 
 
-# Run the quantisation analysis pass. ----------
+# ---------------------- Run the quantisation analysis pass. ----------------------------------
 from chop.passes.graph.transforms import (
     quantize_transform_pass,
     summarize_quantization_analysis_pass,
@@ -145,30 +145,12 @@ def quantize_and_compare(mg: MaseGraph, ori_mg: MaseGraph):
 
     mg, _ = quantize_transform_pass(mg, pass_args)
     summarize_quantization_analysis_pass(ori_mg, mg, save_dir="quantize_summary")
+    return mg
 
-quantize_and_compare(mg, ori_mg)
-
-## Load own network
-own_model = get_model(
-    name="jsc-ownnetwork",
-    task="cls",
-    dataset_info=data_module.dataset_info,
-    pretrained=False)
-
-own_mg = MaseGraph(model=own_model)
-
-OWN_NETWORK_CHECK_POINT_PATH = "/home/jlsand/mase/mase_output/jsc-jsc-ownnetwork_classification_jsc_2024-02-06/software/training_ckpts/best.ckpt" 
-own_model = load_model(load_name=CHECKPOINT_PATH, load_type="pl", model=own_model)
-
-own_ori_mg = MaseGraph(model=model)
-own_ori_mg, _ = init_metadata_analysis_pass(own_ori_mg, None)
-own_ori_mg, _ = add_common_metadata_analysis_pass(own_ori_mg, {"dummy_in": dummy_in})
-
-quantize_and_compare(own_mg, own_ori_mg)
+mg = quantize_and_compare(mg, ori_mg)
 
 
-
-# Own traversal of the original and quantised graphs -----
+# ------------------------ Own traversal of the original and quantised graphs ------------------- 
 from tabulate import tabulate
 
 from chop.passes.graph.utils import get_mase_op, get_mase_type, get_node_actual_target
@@ -228,3 +210,24 @@ def compared_pre_post_quantized_graphs(
     logger.info("\n" + tabulate(rows, headers=headers))
     
 compared_pre_post_quantized_graphs(ori_mg, mg, save_path=None, silent=False)
+
+
+
+## ---------------- Confirming that the layers have been quantized. ------------------
+
+
+def dump(obj):
+    for attr in dir(obj):
+        print("obj.%s = %r" % (attr, getattr(obj, attr)))
+
+# Print the weights of the original linear layer in the MaseGraph
+# The linear layer is the third sequential block.
+linear_layer = getattr(ori_mg.modules["seq_blocks"], "2")    
+print("\n", linear_layer.weight)
+
+# When quantized, the linear node is replaced with a
+# LinearInteger node. This node stores the weights in
+# unquantized form, and then when .forward() is called 
+# quantizes the weights on demand using w_quantizer()
+linear_base = getattr(mg.modules["seq_blocks"], "2")    
+print("\n", linear_base.w_quantizer(linear_layer.weight))
