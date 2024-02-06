@@ -29,6 +29,7 @@ batch_size = 8
 model_name = "jsc-tiny"
 dataset_name = "jsc"
 
+    
 
 data_module = MaseDataModule(
     name=dataset_name,
@@ -106,45 +107,68 @@ mg, _ = report_node_meta_param_analysis_pass(mg, {"which": ("software",)})
 
 
 
-# Run the quantisation analysis pass.
-pass_args = {
-    "by": "type",
-    "default": {"config": {"name": None}},
-    "linear": {
-        "config": {
-            "name": "integer",
-            # data
-            "data_in_width": 8,
-            "data_in_frac_width": 4,
-            # weight
-            "weight_width": 8,
-            "weight_frac_width": 4,
-            # bias
-            "bias_width": 8,
-            "bias_frac_width": 4,
-        }
-    },
-}
-
+# Run the quantisation analysis pass. ----------
 from chop.passes.graph.transforms import (
     quantize_transform_pass,
     summarize_quantization_analysis_pass,
 )
 from chop.ir.graph.mase_graph import MaseGraph
 
+
 # Save the original mase graph for the sake of comparison with quantised MaseGraph
 ori_mg = MaseGraph(model=model)
 ori_mg, _ = init_metadata_analysis_pass(ori_mg, None)
 ori_mg, _ = add_common_metadata_analysis_pass(ori_mg, {"dummy_in": dummy_in})
 
-mg, _ = quantize_transform_pass(mg, pass_args)
-# summarize_quantization_analysis_pass(ori_mg, mg, save_dir="quantize_summary")
+def quantize_and_compare(mg: MaseGraph, ori_mg: MaseGraph):
+
+    pass_args = {
+        "by": "type",
+        "default": {"config": {"name": None}},
+        "linear": {
+            "config": {
+                "name": "integer",
+                # data
+                "data_in_width": 8,
+                "data_in_frac_width": 4,
+                # weight
+                "weight_width": 8,
+                "weight_frac_width": 4,
+                # bias
+                "bias_width": 8,
+                "bias_frac_width": 4,
+            }
+        },
+    }
+
+
+
+    mg, _ = quantize_transform_pass(mg, pass_args)
+    summarize_quantization_analysis_pass(ori_mg, mg, save_dir="quantize_summary")
+
+quantize_and_compare(mg, ori_mg)
+
+## Load own network
+own_model = get_model(
+    name="jsc-ownnetwork",
+    task="cls",
+    dataset_info=data_module.dataset_info,
+    pretrained=False)
+
+own_mg = MaseGraph(model=own_model)
+
+OWN_NETWORK_CHECK_POINT_PATH = "/home/jlsand/mase/mase_output/jsc-jsc-ownnetwork_classification_jsc_2024-02-06/software/training_ckpts/best.ckpt" 
+own_model = load_model(load_name=CHECKPOINT_PATH, load_type="pl", model=own_model)
+
+own_ori_mg = MaseGraph(model=model)
+own_ori_mg, _ = init_metadata_analysis_pass(own_ori_mg, None)
+own_ori_mg, _ = add_common_metadata_analysis_pass(own_ori_mg, {"dummy_in": dummy_in})
+
+quantize_and_compare(own_mg, own_ori_mg)
 
 
 
 # Own traversal of the original and quantised graphs -----
-
-
 from tabulate import tabulate
 
 from chop.passes.graph.utils import get_mase_op, get_mase_type, get_node_actual_target

@@ -45,6 +45,62 @@ class JSC_Tiny(nn.Module):
         return self.seq_blocks(x)
 
 
+class JSC_OwnNetwork(nn.Module):
+    def __init__(self, info):
+        super(JSC_OwnNetwork, self).__init__()
+        self.seq_blocks = nn.Sequential(
+            # 16 * 4 = 64 parameters
+            nn.BatchNorm1d(16),
+            nn.ReLU(16),
+
+            # 16 * 16 = 256 parameters
+            nn.Linear(16, 16),
+            nn.ReLU(16),
+
+            nn.Dropout(p=0.2),
+
+            # 16 * 16 = 256 parameters
+            nn.Linear(16, 16),
+            nn.ReLU(16),
+
+            nn.Dropout(p=0.2),
+            
+            # 16 * 16 = 256 parameters
+            nn.Linear(16, 16),
+            nn.ReLU(16),
+
+            # nn.Dropout(p=0.2),
+
+            # 16 * 12 = 192 parameters
+            nn.Linear(16, 12),
+            nn.ReLU(12),
+
+            # nn.Dropout(p=0.2),
+            
+            # 12 * 10 = 120 parameters
+            nn.Linear(12, 10),
+            nn.ReLU(10),
+            
+            # nn.Dropout(p=0.2),
+
+            # 10 * 8 = 80 parameters
+            nn.Linear(10, 8),
+            nn.ReLU(8),
+
+            # nn.Dropout(p=0.2),
+            
+            # 8 * 5 = 40 parameters
+            nn.Linear(8, 5),
+            nn.ReLU(5),
+
+            # This leads to a total of parameters roughly 10x 
+            # the jsc tiny network: 64 + 256 * 3 + 192 + 120 + 80 + 40 = 1264
+        )
+
+    def forward(self, x):
+        return self.seq_blocks(x)
+
+
 class JSC_S(nn.Module):
     def __init__(self, info):
         super(JSC_S, self).__init__()
@@ -90,6 +146,10 @@ def get_jsc_toy(info):
 
 def get_jsc_tiny(info):
     return JSC_Tiny(info)
+
+
+def get_jsc_ownnetwork(info):
+    return JSC_OwnNetwork(info)
 
 
 def get_jsc_s(info):
