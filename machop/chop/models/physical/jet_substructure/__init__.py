@@ -53,19 +53,48 @@ class JSC_OwnNetwork(nn.Module):
             nn.BatchNorm1d(16),
             nn.ReLU(16),
 
-            # 32 * 16
-            nn.Linear(16, 32),
-            nn.ReLU(32),
-
-            nn.Linear(32, 16),
-            nn.ReLU(16),
-
+            # 16 * 16 = 256 parameters
             nn.Linear(16, 16),
             nn.ReLU(16),
 
-            # 16 * 5 = 80 parameters
-            nn.Linear(16, 5),
+            nn.Dropout(p=0.2),
+
+            # 16 * 16 = 256 parameters
+            nn.Linear(16, 16),
+            nn.ReLU(16),
+
+            nn.Dropout(p=0.2),
+            
+            # 16 * 16 = 256 parameters
+            nn.Linear(16, 16),
+            nn.ReLU(16),
+
+            # nn.Dropout(p=0.2),
+
+            # 16 * 12 = 192 parameters
+            nn.Linear(16, 12),
+            nn.ReLU(12),
+
+            # nn.Dropout(p=0.2),
+            
+            # 12 * 10 = 120 parameters
+            nn.Linear(12, 10),
+            nn.ReLU(10),
+            
+            # nn.Dropout(p=0.2),
+
+            # 10 * 8 = 80 parameters
+            nn.Linear(10, 8),
+            nn.ReLU(8),
+
+            # nn.Dropout(p=0.2),
+            
+            # 8 * 5 = 40 parameters
+            nn.Linear(8, 5),
             nn.ReLU(5),
+
+            # This leads to a total of parameters roughly 10x 
+            # the jsc tiny network: 64 + 256 * 3 + 192 + 120 + 80 + 40 = 1264
         )
 
     def forward(self, x):
