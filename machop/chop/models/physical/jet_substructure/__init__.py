@@ -45,6 +45,33 @@ class JSC_Tiny(nn.Module):
         return self.seq_blocks(x)
 
 
+class JSC_OwnNetwork(nn.Module):
+    def __init__(self, info):
+        super(JSC_OwnNetwork, self).__init__()
+        self.seq_blocks = nn.Sequential(
+            # 16 * 4 = 64 parameters
+            nn.BatchNorm1d(16),
+            nn.ReLU(16),
+
+            # 32 * 16
+            nn.Linear(16, 32),
+            nn.ReLU(32),
+
+            nn.Linear(32, 16),
+            nn.ReLU(16),
+
+            nn.Linear(16, 16),
+            nn.ReLU(16),
+
+            # 16 * 5 = 80 parameters
+            nn.Linear(16, 5),
+            nn.ReLU(5),
+        )
+
+    def forward(self, x):
+        return self.seq_blocks(x)
+
+
 class JSC_S(nn.Module):
     def __init__(self, info):
         super(JSC_S, self).__init__()
@@ -90,6 +117,10 @@ def get_jsc_toy(info):
 
 def get_jsc_tiny(info):
     return JSC_Tiny(info)
+
+
+def get_jsc_ownnetwork(info):
+    return JSC_OwnNetwork(info)
 
 
 def get_jsc_s(info):
