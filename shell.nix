@@ -22,7 +22,7 @@ in pkgs.mkShell rec {
   #   export LD_LIBRARY_PATH=${pkgs.libGL}/lib:${pkgs.libGLU}/lib:${pkgs.freeglut}/lib:${pkgs.xorg.libX11}/lib:${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.cudatoolkit_10_1}/lib:${pkgs.cudnn_cudatoolkit_10_1}/lib:${pkgs.cudatoolkit_10_1.lib}/lib:$LD_LIBRARY_PATH
   # '';
 
-  LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.clangStdenv.cc.cc pkgs.libGL pkgs.glib];
+  LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.clangStdenv.cc.cc pkgs.libGL pkgs.glib cudaPackages.cuda_cudart cudaPackages.cudatoolkit cudaPackages.cudnn ];
 
   name = "impureMaseEnv";
   venvDir = "./.venv";
@@ -54,6 +54,9 @@ in pkgs.mkShell rec {
     glib
     libglvnd
     mesa
+
+    python311Packages.cocotb-bus
+    python311Packages.cocotb    
     python311Packages.pyopengl
     wget
     python311Packages.tensorboard
@@ -63,9 +66,9 @@ in pkgs.mkShell rec {
     python311Packages.torchvision-bin
     python311Packages.torchaudio-bin
 
-    # cudaPackages.cuda_cudart
-    # cudaPackages.cudatoolkit
-    # cudaPackages.cudnn
+    cudaPackages.cuda_cudart
+    cudaPackages.cudatoolkit
+    cudaPackages.cudnn
 
     # python311Packages.pytorch-lightning
     python311Packages.keras
