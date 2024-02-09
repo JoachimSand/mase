@@ -9,6 +9,7 @@ with import <nixpkgs>{
 
 let
   pythonPackages = pkgs.python3Packages;
+  stdenv = pkgs.clangStdenv;
 in pkgs.mkShell rec {
 
 
@@ -21,7 +22,7 @@ in pkgs.mkShell rec {
   #   export LD_LIBRARY_PATH=${pkgs.libGL}/lib:${pkgs.libGLU}/lib:${pkgs.freeglut}/lib:${pkgs.xorg.libX11}/lib:${pkgs.stdenv.cc.cc.lib}/lib:${pkgs.cudatoolkit_10_1}/lib:${pkgs.cudnn_cudatoolkit_10_1}/lib:${pkgs.cudatoolkit_10_1.lib}/lib:$LD_LIBRARY_PATH
   # '';
 
-  LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.stdenv.cc.cc pkgs.libGL pkgs.glib pkgs.cudaPackages.cudnn pkgs.cudaPackages.cudatoolkit pkgs.cudaPackages.cuda_cudart];
+  LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.clangStdenv.cc.cc pkgs.libGL pkgs.glib cudaPackages.cuda_cudart cudaPackages.cudatoolkit cudaPackages.cudnn ];
 
   name = "impureMaseEnv";
   venvDir = "./.venv";
@@ -53,6 +54,9 @@ in pkgs.mkShell rec {
     glib
     libglvnd
     mesa
+
+    python311Packages.cocotb-bus
+    python311Packages.cocotb    
     python311Packages.pyopengl
     wget
     python311Packages.tensorboard
@@ -71,6 +75,8 @@ in pkgs.mkShell rec {
     python311Packages.python-lsp-server
 
 	verible
+    verilator
+    svls
   ];
 
   # Run this command, only after creating the virtual environment
