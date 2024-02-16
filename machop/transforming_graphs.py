@@ -223,11 +223,25 @@ def dump(obj):
 # Print the weights of the original linear layer in the MaseGraph
 # The linear layer is the third sequential block.
 linear_layer = getattr(ori_mg.modules["seq_blocks"], "2")    
-print("\n", linear_layer.weight)
+# print("\n", linear_layer.weight)
 
 # When quantized, the linear node is replaced with a
 # LinearInteger node. This node stores the weights in
 # unquantized form, and then when .forward() is called 
 # quantizes the weights on demand using w_quantizer()
 linear_base = getattr(mg.modules["seq_blocks"], "2")    
-print("\n", linear_base.w_quantizer(linear_layer.weight))
+# print("\n", linear_base.w_quantizer(linear_layer.weight))
+
+
+linear_base = getattr(mg.modules["seq_blocks"], "2")
+
+
+batch_norm = getattr(mg.modules["seq_blocks"], "0")    
+
+print(batch_norm.running_mean)
+print(batch_norm.running_var)
+print(batch_norm.bias)
+print(batch_norm.weight)
+
+# dump(batch_norm)    
+
